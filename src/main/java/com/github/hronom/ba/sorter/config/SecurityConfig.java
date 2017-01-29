@@ -1,6 +1,6 @@
 package com.github.hronom.ba.sorter.config;
 
-import com.github.hronom.ba.sorter.config.custom.objects.CustomAuthenticationProvider;
+import com.github.hronom.ba.sorter.config.custom.objects.JsonConfigAuthenticationProvider;
 
 import org.springframework.boot.autoconfigure.security.SecurityProperties;
 import org.springframework.context.annotation.Bean;
@@ -33,7 +33,7 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
             .sessionFixation().none()
             .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
             .and()
-            .httpBasic()/*.authenticationEntryPoint(new BasicAuthenticationEntryPoint())*/
+            .httpBasic()
             .and()
             .rememberMe().disable()
             .formLogin().disable()
@@ -48,7 +48,7 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
     }
 
     @Bean
-    public CustomAuthenticationProvider customAuthenticationProvider() throws Exception {
-        return new CustomAuthenticationProvider();
+    public JsonConfigAuthenticationProvider customAuthenticationProvider() throws Exception {
+        return new JsonConfigAuthenticationProvider();
     }
 }

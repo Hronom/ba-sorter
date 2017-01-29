@@ -1,30 +1,23 @@
 package com.github.hronom.ba.sorter.controllers;
 
 import com.github.hronom.ba.sorter.config.custom.objects.CustomUser;
-import com.github.hronom.ba.sorter.handlers.ClientErrorHandler;
+import com.github.hronom.ba.sorter.services.OkHttpClientFactory;
 
-import org.apache.tomcat.util.codec.binary.Base64;
-import org.springframework.http.HttpEntity;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.http.converter.ByteArrayHttpMessageConverter;
-import org.springframework.http.converter.HttpMessageConverter;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseBody;
-import org.springframework.web.client.RestTemplate;
 
 import java.io.IOException;
-import java.net.MalformedURLException;
-import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.security.Principal;
-import java.util.ArrayList;
 import java.util.Enumeration;
 import java.util.List;
 import java.util.Map;
@@ -42,6 +35,9 @@ import okio.BufferedSink;
 @Controller
 public class ProxyController {
 
+    @Autowired
+    private OkHttpClientFactory okHttpClientFactory;
+
     @RequestMapping(value = "/**", consumes = MediaType.ALL_VALUE)
     public @ResponseBody
     ResponseEntity<byte[]> mirrorRest(
@@ -51,38 +47,12 @@ public class ProxyController {
         HttpServletResponse response,
         Principal principal
     ) throws URISyntaxException, IOException {
-        System.out.println(request.toString());
-        /*if (principal == null) {
-            return exchange(
-                "https://www.google.com",
-                method,
-                request,
-                body
-            );
-        }*/
-
-        if (principal == null) {
-            System.out.println("FUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUU");
-        }
-
         CustomUser user = (CustomUser) principal;
-
-        if (user.getUsername().equals("Hronom") && user.getPassword().equals("1")) {
-            return exchange(
-                "https://www.google.com",
-                method,
-                request,
-                body
-            );
-        } else if (user.getUsername().equals("Hronom 2") && user.getPassword().equals("1")) {
-            return exchange(
-                "www.yandex.ua",
-                method,
-                request,
-                body
-            );
+        if (user != null) {
+            OkHttpClient client = okHttpClientFactory.getClient(user.getUrl());
+            return exchange(user.getUrl(), method, request, body, client);
         } else {
-            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+            return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
         }
     }
 
@@ -90,11 +60,10 @@ public class ProxyController {
         String serverSpec,
         HttpMethod method,
         HttpServletRequest httpServletRequest,
-        final String body
+        final String body,
+        OkHttpClient client
     ) throws IOException, URISyntaxException {
         URL serverURL = new URL(serverSpec);
-
-        OkHttpClient client = new OkHttpClient();
 
         HttpUrl.Builder httpUrlBuilder = new HttpUrl.Builder();
         httpUrlBuilder.scheme(serverURL.getProtocol());
@@ -143,7 +112,8 @@ public class ProxyController {
         while (headerNames.hasMoreElements()) {
             String headerName = headerNames.nextElement();
             if ("host".equalsIgnoreCase(headerName)) {
-                requestHeadersBuilder.add(headerName, serverURL.getHost());
+               // requestHeadersBuilder.add(headerName, serverURL.getHost());
+                System.out.println("host, skeep");
             } else if ("authorization".equalsIgnoreCase(headerName)) {
                 System.out.println("authorization, skeep");
             } else {
@@ -175,52 +145,6 @@ public class ProxyController {
             responseHeaders,
             HttpStatus.valueOf(response.code())
         );
-    }
-
-    private ResponseEntity<byte[]> exchange2(
-        String serverSpec,
-        String requestUri,
-        String queryString,
-        HttpMethod method,
-        String body
-    ) throws MalformedURLException, URISyntaxException {
-        URL serverURL = new URL(serverSpec);
-
-        URI uri = new URI(
-            serverURL.getProtocol(),
-            null,
-            serverURL.getHost(),
-            serverURL.getPort(),
-            requestUri,
-            queryString,
-            null
-        );
-
-        HttpHeaders headers = new HttpHeaders();
-
-        HttpEntity<String> requestBody;
-        if (body != null) {
-            requestBody = new HttpEntity<>(body, headers);
-        } else {
-            requestBody = new HttpEntity<>(headers);
-        }
-
-        List<HttpMessageConverter<?>> messageConverters = new ArrayList<>();
-        messageConverters.add(new ByteArrayHttpMessageConverter());
-        RestTemplate restTemplate = new RestTemplate(messageConverters);
-        restTemplate.setErrorHandler(new ClientErrorHandler());
-        ResponseEntity<byte[]> responseEntity =
-            restTemplate.exchange(uri, method, requestBody, byte[].class);
-
-
-        HttpHeaders responseHeaders = new HttpHeaders();
-        responseHeaders.putAll(responseEntity.getHeaders());
-        String plainCreds = "Hronom:1";
-        byte[] plainCredsBytes = plainCreds.getBytes();
-        byte[] base64CredsBytes = Base64.encodeBase64(plainCredsBytes);
-        String base64Creds = new String(base64CredsBytes);
-        responseHeaders.add("Authorization", "Basic " + base64Creds);
-        return new ResponseEntity<>(responseEntity.getBody(), responseHeaders, responseEntity.getStatusCode());
     }
 
     private okhttp3.RequestBody createOkhttp3RequestBody(

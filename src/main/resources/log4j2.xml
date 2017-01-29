@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Configuration>
+    <Appenders>
+        <Console name="console.default" target="SYSTEM_OUT">
+            <PatternLayout pattern="%d{HH:mm:ss} %p [%t] [%c{1}(%M:%L)] - %m%n" charset="UTF-8" noConsoleNoAnsi="true"/>
+        </Console>
+        <File
+            name="file.default"
+            fileName="logs/ba-sorter.log"
+            append="false">
+            <PatternLayout pattern="%d{HH:mm:ss} %p [%t] [%c{1}(%M:%L)] - %m%n" charset="UTF-8" noConsoleNoAnsi="true"/>
+        </File>
+    </Appenders>
+
+    <Loggers>
+        <Root level="info">
+            <AppenderRef ref="console.default"/>
+            <AppenderRef ref="file.default"/>
+        </Root>
+    </Loggers>
+</Configuration>
